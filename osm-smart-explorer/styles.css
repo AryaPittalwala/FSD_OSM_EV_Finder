@@ -26,7 +26,9 @@
   --shadow-card: 0 8px 24px -4px rgba(0, 0, 0, 0.4);
 }
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -120,9 +122,20 @@ body {
 }
 
 @keyframes pulse {
-  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
-  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
+
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
 }
 
 /* ── App Split Container (Left Sidebar + Right Map) ────────── */
@@ -159,11 +172,13 @@ body {
 .stations-list::-webkit-scrollbar {
   width: 6px;
 }
+
 .sidebar::-webkit-scrollbar-thumb,
 .stations-list::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.15);
   border-radius: var(--radius-pill);
 }
+
 .sidebar::-webkit-scrollbar-thumb:hover,
 .stations-list::-webkit-scrollbar-thumb:hover {
   background: rgba(56, 189, 248, 0.35);
@@ -180,6 +195,7 @@ body {
   box-shadow: var(--shadow-card);
   transition: border-color 0.2s ease;
 }
+
 .panel-card:hover {
   border-color: rgba(255, 255, 255, 0.14);
 }
@@ -208,6 +224,7 @@ body {
   position: relative;
   padding-bottom: 4px;
 }
+
 .tab-btn.active::after {
   content: '';
   position: absolute;
@@ -297,6 +314,7 @@ body {
   padding: 0.5rem 0;
   outline: none;
 }
+
 #search-input::placeholder {
   color: var(--text-dim);
   font-size: 0.85rem;
@@ -312,6 +330,7 @@ body {
   border-radius: 4px;
   transition: color 0.15s, background 0.15s;
 }
+
 #clear-btn:hover {
   color: #fff;
   background: rgba(255, 255, 255, 0.1);
@@ -341,13 +360,16 @@ body {
   box-shadow: 0 4px 12px var(--blue-glow);
   transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
 }
+
 #search-btn:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(37, 99, 235, 0.5);
 }
+
 #search-btn:active:not(:disabled) {
   transform: translateY(0);
 }
+
 #search-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -358,8 +380,14 @@ body {
   margin-top: 0.5rem;
   min-height: 1.2em;
 }
-.msg.error { color: #f87171; }
-.msg.info  { color: var(--cyan-accent); }
+
+.msg.error {
+  color: #f87171;
+}
+
+.msg.info {
+  color: var(--cyan-accent);
+}
 
 /* ── Result Panel (Geocoded location) ──────────────────────── */
 .result-panel {
@@ -373,6 +401,7 @@ body {
   align-items: center;
   margin-bottom: 0.35rem;
 }
+
 .result-label {
   font-size: 0.75rem;
   color: var(--cyan-accent);
@@ -380,11 +409,13 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
+
 #res-link {
   font-size: 0.75rem;
   color: var(--text-muted);
   text-decoration: none;
 }
+
 #res-link:hover {
   color: #fff;
   text-decoration: underline;
@@ -398,6 +429,7 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
 .result-coords {
   display: flex;
   gap: 0.75rem;
@@ -406,6 +438,7 @@ body {
   margin-top: 0.25rem;
   align-items: center;
 }
+
 .result-tag {
   background: rgba(56, 189, 248, 0.15);
   color: var(--cyan-accent);
@@ -609,6 +642,7 @@ body {
   align-items: center;
   gap: 6px;
 }
+
 .status-indicator-dot {
   width: 7px;
   height: 7px;
@@ -637,10 +671,12 @@ body {
   text-align: center;
   padding: 0.3rem 0;
 }
+
 .sidebar-footer a {
   color: var(--text-muted);
   text-decoration: none;
 }
+
 .sidebar-footer a:hover {
   color: var(--cyan-accent);
 }
@@ -772,8 +808,15 @@ body {
 }
 
 @keyframes toastSlideDown {
-  from { transform: translateY(-16px); opacity: 0; }
-  to   { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(-16px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .toast-bolt {
@@ -814,6 +857,7 @@ body {
   border-radius: 4px;
   transition: color 0.15s;
 }
+
 .toast-close:hover {
   color: #fff;
 }
@@ -829,9 +873,11 @@ body {
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5) !important;
   padding: 4px !important;
 }
+
 .leaflet-popup-tip {
   background: rgba(15, 23, 42, 0.94) !important;
 }
+
 .station-popup h4 {
   font-size: 0.92rem;
   color: #fff;
@@ -839,11 +885,13 @@ body {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   padding-bottom: 4px;
 }
+
 .station-popup p {
   font-size: 0.78rem;
   color: var(--text-muted);
   margin: 3px 0 0;
 }
+
 .station-popup strong {
   color: var(--cyan-accent);
 }
@@ -860,9 +908,11 @@ body {
     height: auto;
     overflow-y: auto;
   }
+
   body {
     overflow-y: auto;
   }
+
   .sidebar {
     width: 100%;
     max-width: 100%;
@@ -872,6 +922,7 @@ body {
     border-right: none;
     border-bottom: 1px solid var(--glass-border);
   }
+
   .map-viewport {
     height: 480px;
     width: 100%;
