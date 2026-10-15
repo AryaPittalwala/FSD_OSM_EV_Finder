@@ -39,16 +39,7 @@
           <button type="button" class="tab-btn active" id="tab-results">
             <span class="tab-icon">☰</span> Results
           </button>
-          <div class="radius-control">
-            <label for="radius-select">Radius:</label>
-            <select id="radius-select">
-              <option value="10">10 km</option>
-              <option value="25" selected>25 km</option>
-              <option value="50">50 km</option>
-              <option value="100">100 km</option>
-              <option value="150">150 km</option>
-            </select>
-          </div>
+          <span class="tab-tagline">Open Charge Map</span>
         </div>
 
         <form id="search-form" novalidate>
@@ -64,6 +55,30 @@
               maxlength="100"
             />
             <button type="button" id="clear-btn" title="Clear search">✕</button>
+          </div>
+
+          <!-- Filter Dropdowns Row: Power Range & Radius -->
+          <div class="form-filters-row">
+            <div class="filter-field">
+              <label for="power-select">⚡ Power Range:</label>
+              <select id="power-select">
+                <option value="all" selected>All Powers</option>
+                <option value="high">High Power (≥ 50 kW)</option>
+                <option value="medium">Medium Power (20–49 kW)</option>
+                <option value="low">Low Power (&lt; 20 kW)</option>
+                <option value="unspecified">No Power Specified</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label for="radius-select">📍 Search Radius:</label>
+              <select id="radius-select">
+                <option value="10">10 km</option>
+                <option value="25" selected>25 km</option>
+                <option value="50">50 km</option>
+                <option value="100">100 km</option>
+                <option value="150">150 km</option>
+              </select>
+            </div>
           </div>
 
           <div class="form-actions">
@@ -100,6 +115,20 @@
           </div>
           <span id="stations-count" class="count-badge hidden">0 found</span>
         </div>
+
+        <!-- Nearest Station Travel Time Alert Banner -->
+        <div id="nearest-eta-alert" class="nearest-eta-banner hidden" role="status" aria-live="polite">
+          <div class="eta-icon-wrap">⚡</div>
+          <div class="eta-info-wrap">
+            <div class="eta-headline">
+              <span class="eta-tag">NEAREST EV CHARGER</span>
+              <span class="eta-time-pill" id="nearest-eta-time">🚗 ~0 mins drive</span>
+            </div>
+            <div class="eta-station-name" id="nearest-station-name">—</div>
+            <div class="eta-sub" id="nearest-eta-dist">0 km away from searched location</div>
+          </div>
+        </div>
+
         <ul id="stations-list" class="stations-list" aria-label="EV stations list"></ul>
       </section>
 
@@ -111,6 +140,15 @@
 
     <!-- Right Map Viewport -->
     <section class="map-viewport" aria-label="Interactive Map">
+      <!-- Floating Station ETA Alert / Notification on Map -->
+      <div id="floating-eta-toast" class="floating-eta-toast hidden">
+        <span class="toast-bolt">⚡</span>
+        <div class="toast-body">
+          <div class="toast-title" id="toast-title">Station Name</div>
+          <div class="toast-meta" id="toast-meta">🚗 ~5 mins drive (1.2 km away)</div>
+        </div>
+        <button type="button" class="toast-close" id="toast-close" title="Dismiss">✕</button>
+      </div>
       <div id="map"></div>
     </section>
   </main>
