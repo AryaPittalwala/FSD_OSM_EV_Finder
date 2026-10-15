@@ -1,0 +1,154 @@
+# Coding Agent Instructions: OSM Smart Explorer
+
+## 1. Project overview
+Build a small, beginner-friendly web application named **OSM Smart Explorer**. It lets a user search for a city, landmark, or address using OpenStreetMap's Nominatim geocoding API, displays the returned location details, and shows the location on an interactive map using Leaflet.
+
+This is a two-hour demonstration project. Prioritize a reliable working demo, readable code, and clear instructions over extra features.
+
+## 2. Required technologies
+- HTML5
+- CSS3
+- Vanilla JavaScript (no frontend framework)
+- OpenStreetMap Nominatim API for geocoding
+- Leaflet.js for the interactive map
+- OpenStreetMap tiles, with required attribution
+
+Use CDN links for Leaflet to keep setup simple. Do not add a build step unless necessary.
+
+## 3. Mandatory requirements
+
+### A. Three JavaScript events
+Implement and clearly comment these three events:
+1. `input`: update a character counter and provide live input feedback.
+2. `submit`: validate the form, call the API using Fetch, parse JSON, and display results.
+3. `click`: clear the form and reset the result area.
+
+### B. User input validation
+- Search field is required.
+- Trim leading/trailing whitespace.
+- Accept a sensible length, such as 3–100 characters.
+- Reject inputs containing no letters or numbers.
+- Show clear, accessible validation/error messages.
+- Prevent the form's default page reload on submission.
+- Disable the search button while a request is in progress.
+- Re-enable the button even if the request fails.
+- Display a helpful message when no results are returned.
+
+### C. Fetch API and JSON handling
+- Request Nominatim search results using query parameters, including `q`, `format=jsonv2`, `limit=5`, and optionally `addressdetails=1`.
+- Use `URLSearchParams` to encode query parameters safely.
+- Use `fetch()` and check `response.ok`.
+- Parse the response with `response.json()`.
+- Check that the result is an array and contains at least one result.
+- Safely render values using `textContent`, not unsafe HTML interpolation.
+- Read and display the first result's `display_name`, `lat`, `lon`, and a useful category/type when available.
+- Handle network errors, API errors, malformed/unexpected responses, and empty results.
+
+### D. Interactive map
+- Display a Leaflet map and an OpenStreetMap tile layer.
+- Center the map on the returned latitude/longitude.
+- Add or move a marker for the selected result.
+- Include visible OpenStreetMap attribution.
+- Ensure the map resizes correctly when the results panel becomes visible.
+- Provide an external link to open the selected location on OpenStreetMap.
+
+### E. Clear/reset behavior
+- Clear the input.
+- Reset the character counter and messages.
+- Hide old results.
+- Keep the page in a usable state.
+- Avoid creating duplicate map instances or markers after repeated searches.
+
+### F. Accessibility and usability
+- Use semantic HTML and labels associated with inputs.
+- Keep the layout responsive for desktop and mobile.
+- Make errors/status messages readable.
+- Use buttons with appropriate types.
+- Maintain reasonable contrast and clear spacing.
+
+## 4. UI design
+Create a clean, modern, responsive interface:
+- Header with title “OSM Smart Explorer” and a short description.
+- Search panel with labeled input, character counter, Search button, and Clear button.
+- Result panel displaying place name, latitude, longitude, category/type, and a link to OpenStreetMap.
+- Interactive map below the result details.
+- Footer attribution: “Map data © OpenStreetMap contributors”.
+
+Use a simple palette with dark green/teal accents and a light neutral background. Avoid overengineering the design.
+
+## 5. Project structure
+Create the following files in the project root:
+
+osm-smart-explorer/
+├── index.html       # Page structure and accessible form/results markup
+├── styles.css       # All application styles and responsive layout
+├── app.js           # Event listeners, validation, Fetch API, JSON handling, Leaflet map
+├── README.md        # Setup, run instructions, features, API and attribution notes
+└── requirements.txt # Human-readable project requirements (not Python packages)
+
+Do not put all code into one HTML file. Keep HTML, CSS, and JavaScript separate.
+
+### File responsibilities
+- `index.html`: load `styles.css`, Leaflet CSS/JS, and `app.js`; define form, status region, result fields, map container, and attribution.
+- `styles.css`: style the page, forms, buttons, errors, result panel, map, and mobile layout.
+- `app.js`: implement the three required events, input validation, Nominatim fetch, JSON handling, rendering, and map marker updates.
+- `README.md`: explain project purpose, requirements, how to run it, how to test it, API policy, and limitations.
+- `requirements.txt`: list functional and technical requirements as plain text. It is not a Python dependency file.
+
+## 6. API and service rules
+Use the public Nominatim endpoint:
+`https://nominatim.openstreetmap.org/search`
+
+Respect the Nominatim usage policy:
+`https://operations.osmfoundation.org/policies/nominatim/`
+
+This is a classroom demo only. Keep request volume low and do not implement autocomplete or send a request on every keystroke. Only call the geocoding service when the user submits the form. Do not attempt to bypass rate limits. If a browser request is blocked by CORS or service policy, explain the issue and suggest a compliant local backend/proxy rather than pretending the request succeeded.
+
+Use OpenStreetMap map tiles with attribution and comply with the tile usage policy:
+`https://operations.osmfoundation.org/policies/tiles/`
+
+Do not add API keys or secrets to frontend code. The public Nominatim and standard OSM tile services do not require embedding a private API key for this demo.
+
+## 7. AI requirement
+The first version must be fully functional without an AI API key. Do not claim that geocoding itself is AI.
+
+Add an optional, clearly labeled “AI Location Summary” placeholder only if it can be implemented honestly. If no AI provider key/backend is configured, show a message that AI summary is not configured rather than inventing AI-generated output. Do not expose secret API keys in browser JavaScript. Keep this optional feature out of the critical path for the core demo.
+
+## 8. Acceptance criteria
+The project is complete when:
+1. Opening the project using a local development server shows the interface without layout errors.
+2. The three event listeners (`input`, `submit`, `click`) are present and commented.
+3. Empty and too-short input are rejected with a helpful message.
+4. Searching for “Bengaluru, India” returns location data when the service is reachable.
+5. The UI displays a place name, latitude, longitude, and category/type.
+6. The map centers on the returned coordinates and displays a marker.
+7. Repeating searches updates the existing map/marker without duplicating the map.
+8. An unknown place shows a useful no-results message.
+9. Network/API failures show an error and re-enable the Search button.
+10. The Clear button resets the form and hides old results.
+11. The layout works on mobile and desktop.
+12. OpenStreetMap attribution is visible.
+13. README.md contains run/test instructions and links to relevant service policies.
+14. All files are placed in the required project structure.
+
+## 9. Manual test plan
+Test the following cases:
+- Submit an empty field.
+- Enter one or two characters.
+- Enter only punctuation/symbols.
+- Search for `Bengaluru, India`.
+- Search for a known landmark such as `India Gate, New Delhi`.
+- Search for a made-up location and verify the no-results message.
+- Disconnect the internet or simulate a failed request and verify error handling.
+- Search for two different places consecutively and ensure the map marker updates.
+- Click Clear after a successful search.
+- Resize the browser to mobile width.
+
+## 10. Agent deliverables
+Please:
+1. Create all files in the exact structure above.
+2. Write complete, runnable code; no pseudocode or TODOs for mandatory features.
+3. Keep the implementation beginner-friendly and add useful comments.
+4. Verify selectors and file paths match across HTML, CSS, and JavaScript.
+5. Include clear instructions for running locally, preferably with VS Code Live Server or another simple local server.
+6. Summarize which requirements are implemented and mention any limitations honestly.

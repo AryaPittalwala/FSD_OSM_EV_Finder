@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EV Charger Finder – OSM Smart Explorer</title>
+  <meta name="description" content="Find nearby EV charging stations on OpenStreetMap." />
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>⚡ EV Charger Finder</h1>
+    <p class="subtitle">Enter your location to find nearby EV charging stations on the map.</p>
+  </header>
+
+  <main>
+    <!-- Search Panel -->
+    <section class="search-panel" aria-label="Search">
+      <form id="search-form" novalidate>
+        <label for="search-input">Your location</label>
+        <div class="input-row">
+          <input
+            type="text"
+            id="search-input"
+            name="q"
+            placeholder="e.g. Bengaluru, India or MG Road, Bangalore"
+            autocomplete="off"
+            aria-describedby="char-counter validation-msg"
+            maxlength="100"
+          />
+          <button type="submit" id="search-btn">🔍 Find EV Stations</button>
+          <button type="button" id="clear-btn">Clear</button>
+        </div>
+        <div class="form-meta">
+          <span id="char-counter" aria-live="polite">0 / 100</span>
+          <label for="radius-select" class="radius-label">Search radius:</label>
+          <select id="radius-select">
+            <option value="10000">10 km</option>
+            <option value="25000">25 km</option>
+            <option value="50000" selected>50 km</option>
+            <option value="100000">100 km</option>
+            <option value="150000">150 km</option>
+          </select>
+        </div>
+        <!-- Validation / status messages -->
+        <p id="validation-msg" class="msg" role="alert" aria-live="assertive"></p>
+      </form>
+    </section>
+
+    <!-- Result Panel -->
+    <section id="result-panel" class="result-panel hidden" aria-label="Search result">
+      <h2>Result</h2>
+      <table class="result-table">
+        <tr><th>Place</th><td id="res-name">—</td></tr>
+        <tr><th>Latitude</th><td id="res-lat">—</td></tr>
+        <tr><th>Longitude</th><td id="res-lon">—</td></tr>
+        <tr><th>Category</th><td id="res-cat">—</td></tr>
+      </table>
+      <a id="res-link" href="#" target="_blank" rel="noopener noreferrer">View on OpenStreetMap ↗</a>
+    </section>
+
+    <!-- EV Stations List -->
+    <section id="stations-section" class="stations-panel hidden" aria-label="Nearby EV stations">
+      <div class="stations-header">
+        <h2>⚡ Nearby EV Charging Stations</h2>
+        <span id="stations-count" class="badge"></span>
+      </div>
+      <p id="stations-status" class="msg" aria-live="polite"></p>
+      <ul id="stations-list" class="stations-list" aria-label="EV stations list"></ul>
+    </section>
+
+    <!-- Map -->
+    <section id="map-section" aria-label="Map">
+      <div id="map"></div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a></p>
+  </footer>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
