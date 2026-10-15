@@ -1,10 +1,14 @@
 /**
  * app.js — EV Charger Finder (OSM Smart Explorer)
  * Events: input, submit, click
- * APIs: Nominatim (geocoding) + Overpass (EV stations)
+ * APIs: Nominatim (geocoding) + Open Charge Map (EV stations)
  */
 
 'use strict';
+
+// ── Open Charge Map Configuration ──────────────────────────
+const OCM_API_KEY = '046d788f-51ca-4941-9df4-5951f89778bf';
+const OCM_MAX_RESULTS = 30; // Limit results to conserve quota and ensure snappy map rendering
 
 // ── DOM refs ──────────────────────────────────────────────
 const form           = document.getElementById('search-form');
@@ -94,7 +98,8 @@ form.addEventListener('submit', async (e) => {
     placeLocationMarker(lat, lon, place.display_name);
 
     // Step 2: Open Charge Map API — EV stations near coordinates
-    const radiusKm = parseInt(radiusSelect.value);
+    const rawRadius = parseInt(radiusSelect.value, 10);
+    const radiusKm  = rawRadius >= 1000 ? Math.round(rawRadius / 1000) : rawRadius;
     stationsStatus.textContent = `Searching for EV stations within ${radiusKm} km…`;
     stationsStatus.className = 'msg info';
     stationsSection.classList.remove('hidden');
@@ -102,11 +107,11 @@ form.addEventListener('submit', async (e) => {
     let stations;
     try {
       stations = await fetchEVStations(lat, lon, radiusKm);
-    } catch (ovErr) {
-      stationsStatus.textContent = `Could not load EV stations: ${ovErr.message}.`;
+    } catch (apiErr) {
+      stationsStatus.textContent = `Could not load EV stations: ${apiErr.message}.`;
       stationsStatus.className = 'msg error';
       stationsCount.textContent = '';
-      console.error('OCM error:', ovErr);
+      console.error('Open Charge Map error:', apiErr);
       return;
     }
     renderStations(stations, lat, lon);
@@ -152,76 +157,98 @@ function placeLocationMarker(lat, lon, title) {
   }
 }
 
-// ── Open Charge Map API — fetch EV stations ──────────────
-// Free public API — register at https://openchargemap.org for a key
-// Works without a key for demo/low-volume use
+// ── Open Charge Map API — EV stations ──────────────────────
 async function fetchEVStations(lat, lon, radiusKm) {
-  const params = new URLSearchParams({
-    output: 'json',
-    latitude: lat,
-    longitude: lon,
-    distance: radiusKm,
-    distanceunit: 'KM',
-    maxresults: 100,
-    compact: true,
-    verbose: false
-  });
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 20000);
+  const url = new URL('https://api.openchargemap.io/v3/poi/');
+  url.searchParams.set('output', 'json');
+  url.searchParams.set('latitude', lat);
+  url.searchParams.set('longitude', lon);
+  url.searchParams.set('distance', radiusKm);
+  url.searchParams.set('distanceunit', 'KM');
+  url.searchParams.set('maxresults', OCM_MAX_RESULTS);
+  url.searchParams.set('compact', 'false');
+  url.searchParams.set('verbose', 'false');
+  url.searchParams.set('key', OCM_API_KEY);
+
+  const ctrl = new AbortController();
+  const timeoutId = setTimeout(() => ctrl.abort(), 15000);
+
   try {
-    const res = await fetch(`https://api.openchargemap.io/v3/poi/?${params}`,
-                           { signal: controller.signal });
-    clearTimeout(timer);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const res = await fetch(url.toString(), {
+      signal: ctrl.signal,
+      headers: {
+        'Accept': 'application/json',
+        'X-API-Key': OCM_API_KEY
+      }
+    });
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      if (res.status === 403) throw new Error('API key invalid or limit reached');
+      throw new Error(`Server returned HTTP ${res.status}`);
+    }
+
     const data = await res.json();
-    if (!Array.isArray(data)) throw new Error('Unexpected response from Open Charge Map.');
+    if (!Array.isArray(data)) throw new Error('Invalid response structure');
     return data;
-  } catch (e) {
-    clearTimeout(timer);
-    if (e.name === 'AbortError') throw new Error('Request timed out.');
-    throw e;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') throw new Error('Request timed out (server busy)');
+    throw err;
   }
 }
 
-// ── Render OCM stations list + map markers ────────────────
+// ── Render Open Charge Map stations ────────────────────────
 function renderStations(stations, userLat, userLon) {
   clearStationMarkers();
   stationsList.innerHTML = '';
   activeItem = null;
 
-  if (!stations.length) {
-    stationsStatus.textContent = 'No EV stations found here. Try a larger radius.';
-    stationsCount.textContent = '';
+  // Filter valid locations with lat/lon
+  const validStations = (stations || []).filter(s =>
+    s.AddressInfo &&
+    typeof s.AddressInfo.Latitude === 'number' &&
+    typeof s.AddressInfo.Longitude === 'number'
+  );
+
+  if (!validStations.length) {
+    stationsStatus.textContent = 'No EV stations found within this radius. Try selecting a larger radius.';
+    stationsStatus.className = 'msg info';
+    stationsCount.textContent = '0 found';
     map.setView([userLat, userLon], 11);
     setTimeout(() => map.invalidateSize(), 200);
     return;
   }
 
   stationsStatus.textContent = '';
-  stationsCount.textContent  = `${stations.length} found`;
+  stationsCount.textContent  = `${validStations.length} found`;
 
-  // OCM returns AddressInfo.Distance in km — sort by it
-  stations.sort((a, b) => (a.AddressInfo?.Distance ?? 0) - (b.AddressInfo?.Distance ?? 0));
+  const withDist = validStations
+    .map(s => {
+      const lat = s.AddressInfo.Latitude;
+      const lon = s.AddressInfo.Longitude;
+      const dist = (typeof s.AddressInfo.Distance === 'number')
+        ? s.AddressInfo.Distance
+        : haversine(userLat, userLon, lat, lon);
+      return { ...s, _lat: lat, _lon: lon, _dist: dist };
+    })
+    .sort((a, b) => a._dist - b._dist);
 
   const bounds = [[userLat, userLon]];
 
-  stations.forEach((s, idx) => {
-    const info     = s.AddressInfo || {};
-    const name     = info.Title || `EV Station #${idx + 1}`;
-    const address  = [info.AddressLine1, info.Town, info.StateOrProvince].filter(Boolean).join(', ');
+  withDist.forEach((s, idx) => {
+    const addr = s.AddressInfo || {};
+    const name = addr.Title || `EV Station #${idx + 1}`;
     const operator = s.OperatorInfo?.Title || '';
-    const points   = s.NumberOfPoints ? `${s.NumberOfPoints} point(s)` : '';
-    const cost     = s.UsageCost || '';
-    const sLat     = info.Latitude;
-    const sLon     = info.Longitude;
-    const dist     = info.Distance ?? haversine(userLat, userLon, sLat, sLon);
+    const points = s.NumberOfPoints ? `${s.NumberOfPoints} point(s)` : '';
+    const cost = s.UsageCost ? `Fee: ${s.UsageCost}` : '';
+    const metaParts = [operator, points, cost].filter(Boolean);
+    const meta = metaParts.length > 0 ? metaParts.join(' · ') : (addr.Town || 'EV Charging Station');
+    const dist = s._dist;
 
-    if (!sLat || !sLon) return;
-    bounds.push([sLat, sLon]);
-
-    const mkr = L.marker([sLat, sLon], { icon: evIcon })
-      .addTo(map)
-      .bindPopup(buildPopup(name, operator, points, cost, address, sLat, sLon));
+    bounds.push([s._lat, s._lon]);
+    const mkr = L.marker([s._lat, s._lon], { icon: evIcon })
+      .addTo(map).bindPopup(buildPopup(s));
     stationMarkers.push(mkr);
 
     const li = document.createElement('li');
@@ -229,24 +256,41 @@ function renderStations(stations, userLat, userLon) {
     li.setAttribute('role', 'button');
     li.setAttribute('tabindex', '0');
 
-    const iconEl = document.createElement('span'); iconEl.className = 'station-icon'; iconEl.textContent = '⚡';
-    const infoEl = document.createElement('div');  infoEl.className = 'station-info';
-    const nameEl = document.createElement('div');  nameEl.className = 'station-name'; nameEl.textContent = name;
-    const metaEl = document.createElement('div');  metaEl.className = 'station-meta';
-    metaEl.textContent = [operator, points, address].filter(Boolean).join(' · ') || 'EV Charging Station';
-    const distEl = document.createElement('span'); distEl.className = 'station-dist';
-    distEl.textContent = dist < 1 ? `${Math.round(dist * 1000)} m` : `${dist.toFixed(1)} km`;
+    const ic = document.createElement('span');
+    ic.className = 'station-icon';
+    ic.textContent = '⚡';
 
-    infoEl.append(nameEl, metaEl);
-    li.append(iconEl, infoEl, distEl);
+    const info = document.createElement('div');
+    info.className = 'station-info';
+
+    const nm = document.createElement('div');
+    nm.className = 'station-name';
+    nm.textContent = name;
+
+    const mt = document.createElement('div');
+    mt.className = 'station-meta';
+    mt.textContent = meta;
+
+    const ds = document.createElement('span');
+    ds.className = 'station-dist';
+    ds.textContent = dist < 1 ? `${Math.round(dist * 1000)} m` : `${dist.toFixed(1)} km`;
+
+    info.append(nm, mt);
+    li.append(ic, info, ds);
 
     const activate = () => {
       if (activeItem) activeItem.classList.remove('active');
-      li.classList.add('active'); activeItem = li;
-      map.setView([sLat, sLon], 16); mkr.openPopup();
+      li.classList.add('active');
+      activeItem = li;
+      map.setView([s._lat, s._lon], 16);
+      mkr.openPopup();
     };
+
     li.addEventListener('click', activate);
-    li.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') activate(); });
+    li.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') activate();
+    });
+
     stationsList.appendChild(li);
   });
 
@@ -254,24 +298,34 @@ function renderStations(stations, userLat, userLon) {
   setTimeout(() => map.invalidateSize(), 200);
 }
 
-// ── Build popup safely (OCM fields) ──────────────────────
-function buildPopup(name, operator, points, cost, address, lat, lon) {
+function buildPopup(station) {
+  const addr = station.AddressInfo || {};
   const div = document.createElement('div');
-  const addRow = (label, val) => {
+
+  const title = document.createElement('strong');
+  title.textContent = addr.Title || 'EV Charging Station';
+  div.appendChild(title);
+
+  const add = (label, val) => {
     if (!val) return;
-    const p = document.createElement('p'); p.style.margin = '3px 0 0';
-    p.textContent = `${label}: ${val}`; div.appendChild(p);
+    const p = document.createElement('p');
+    p.style.margin = '4px 0 0';
+    p.textContent = `${label}: ${val}`;
+    div.appendChild(p);
   };
-  const h = document.createElement('strong'); h.textContent = name; div.appendChild(h);
-  addRow('Operator', operator);
-  addRow('Points',   points);
-  addRow('Cost',     cost);
-  addRow('Address',  address);
-  const a = document.createElement('a');
-  a.href = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}&zoom=17`;
-  a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'View on map ↗';
-  a.style.cssText = 'font-size:0.8rem;display:block;margin-top:6px';
-  div.appendChild(a);
+
+  const address = [addr.AddressLine1, addr.Town, addr.StateOrProvince].filter(Boolean).join(', ');
+  add('Address', address);
+  add('Operator', station.OperatorInfo?.Title);
+  add('Access', station.UsageType?.Title);
+  add('Capacity', station.NumberOfPoints ? `${station.NumberOfPoints} point(s)` : null);
+  add('Fee', station.UsageCost);
+
+  if (Array.isArray(station.Connections) && station.Connections.length > 0) {
+    const power = station.Connections.map(c => c.PowerKW ? `${c.PowerKW} kW` : null).filter(Boolean);
+    if (power.length > 0) add('Power', [...new Set(power)].join(', '));
+  }
+
   return div;
 }
 

@@ -3,83 +3,117 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>EV Charger Finder – OSM Smart Explorer</title>
-  <meta name="description" content="Find nearby EV charging stations on OpenStreetMap." />
+  <title>Open Charge Map – EV Smart Finder</title>
+  <meta name="description" content="Find nearby EV charging stations with real-time Open Charge Map data." />
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header>
-    <h1>⚡ EV Charger Finder</h1>
-    <p class="subtitle">Enter your location to find nearby EV charging stations on the map.</p>
+  <!-- Blue Glassmorphic Navbar -->
+  <header class="navbar">
+    <div class="nav-brand">
+      <div class="nav-logo">⚡</div>
+      <div class="brand-text">
+        <span class="brand-title">Open Charge Map</span>
+        <span class="brand-subtitle">The community-powered charging map</span>
+      </div>
+    </div>
+    <div class="nav-tagline">
+      <span class="pulse-dot"></span>
+      <span class="nav-status-text">Live Global EV Network</span>
+    </div>
   </header>
 
-  <main>
-    <!-- Search Panel -->
-    <section class="search-panel" aria-label="Search">
-      <form id="search-form" novalidate>
-        <label for="search-input">Your location</label>
-        <div class="input-row">
-          <input
-            type="text"
-            id="search-input"
-            name="q"
-            placeholder="e.g. Bengaluru, India or MG Road, Bangalore"
-            autocomplete="off"
-            aria-describedby="char-counter validation-msg"
-            maxlength="100"
-          />
-          <button type="submit" id="search-btn">🔍 Find EV Stations</button>
-          <button type="button" id="clear-btn">Clear</button>
+  <!-- Split Screen Layout: Sidebar (left) + Map (right) -->
+  <main class="app-container">
+    <!-- Left Sidebar: Form & Stations -->
+    <aside class="sidebar" aria-label="Search and results panel">
+      <!-- Search & Filter Card -->
+      <section class="panel-card search-card" aria-label="Search EV Stations">
+        <div class="sidebar-tabs">
+          <button type="button" class="tab-btn active" id="tab-results">
+            <span class="tab-icon">☰</span> Results
+          </button>
+          <div class="radius-control">
+            <label for="radius-select">Radius:</label>
+            <select id="radius-select">
+              <option value="10">10 km</option>
+              <option value="25" selected>25 km</option>
+              <option value="50">50 km</option>
+              <option value="100">100 km</option>
+              <option value="150">150 km</option>
+            </select>
+          </div>
         </div>
-        <div class="form-meta">
-          <span id="char-counter" aria-live="polite">0 / 100</span>
-          <label for="radius-select" class="radius-label">Search radius:</label>
-          <select id="radius-select">
-            <option value="10000">10 km</option>
-            <option value="25000">25 km</option>
-            <option value="50000" selected>50 km</option>
-            <option value="100000">100 km</option>
-            <option value="150000">150 km</option>
-          </select>
+
+        <form id="search-form" novalidate>
+          <div class="search-input-wrapper">
+            <span class="search-icon">🔍</span>
+            <input
+              type="text"
+              id="search-input"
+              name="q"
+              placeholder="Search city, place, or postcode..."
+              autocomplete="off"
+              aria-describedby="char-counter validation-msg"
+              maxlength="100"
+            />
+            <button type="button" id="clear-btn" title="Clear search">✕</button>
+          </div>
+
+          <div class="form-actions">
+            <span id="char-counter" class="char-count" aria-live="polite">0 / 100</span>
+            <button type="submit" id="search-btn">Find Stations</button>
+          </div>
+
+          <p id="validation-msg" class="msg" role="alert" aria-live="assertive"></p>
+        </form>
+      </section>
+
+      <!-- Geocoded Location Info (collapsible card) -->
+      <section id="result-panel" class="panel-card result-panel hidden" aria-label="Resolved Location">
+        <div class="result-header">
+          <span class="result-label">📍 Selected Area</span>
+          <a id="res-link" href="#" target="_blank" rel="noopener noreferrer">View on OSM ↗</a>
         </div>
-        <!-- Validation / status messages -->
-        <p id="validation-msg" class="msg" role="alert" aria-live="assertive"></p>
-      </form>
-    </section>
+        <div class="result-info">
+          <div class="result-name" id="res-name">—</div>
+          <div class="result-coords">
+            <span>Lat: <strong id="res-lat">—</strong></span>
+            <span>Lon: <strong id="res-lon">—</strong></span>
+            <span id="res-cat" class="result-tag">—</span>
+          </div>
+        </div>
+      </section>
 
-    <!-- Result Panel -->
-    <section id="result-panel" class="result-panel hidden" aria-label="Search result">
-      <h2>Result</h2>
-      <table class="result-table">
-        <tr><th>Place</th><td id="res-name">—</td></tr>
-        <tr><th>Latitude</th><td id="res-lat">—</td></tr>
-        <tr><th>Longitude</th><td id="res-lon">—</td></tr>
-        <tr><th>Category</th><td id="res-cat">—</td></tr>
-      </table>
-      <a id="res-link" href="#" target="_blank" rel="noopener noreferrer">View on OpenStreetMap ↗</a>
-    </section>
+      <!-- EV Stations List Card -->
+      <section id="stations-section" class="panel-card stations-panel" aria-label="Nearby EV stations">
+        <div class="stations-header">
+          <div>
+            <h2 class="stations-heading">Charging locations</h2>
+            <p id="stations-status" class="stations-subtext">Enter a location above to discover stations.</p>
+          </div>
+          <span id="stations-count" class="count-badge hidden">0 found</span>
+        </div>
+        <ul id="stations-list" class="stations-list" aria-label="EV stations list"></ul>
+      </section>
 
-    <!-- EV Stations List -->
-    <section id="stations-section" class="stations-panel hidden" aria-label="Nearby EV stations">
-      <div class="stations-header">
-        <h2>⚡ Nearby EV Charging Stations</h2>
-        <span id="stations-count" class="badge"></span>
-      </div>
-      <p id="stations-status" class="msg" aria-live="polite"></p>
-      <ul id="stations-list" class="stations-list" aria-label="EV stations list"></ul>
-    </section>
+      <!-- Sidebar Footer -->
+      <footer class="sidebar-footer">
+        <p>Map &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OSM</a> | EV Data &copy; <a href="https://openchargemap.org" target="_blank" rel="noopener">Open Charge Map</a></p>
+      </footer>
+    </aside>
 
-    <!-- Map -->
-    <section id="map-section" aria-label="Map">
+    <!-- Right Map Viewport -->
+    <section class="map-viewport" aria-label="Interactive Map">
       <div id="map"></div>
     </section>
   </main>
-
-  <footer>
-    <p>Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a></p>
-  </footer>
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
